@@ -2,7 +2,10 @@ const express = require("express");
 const http = require("http");
 const socketio = require("socket.io");
 const cors = require("cors");
-const passport = require("passport");
+const cookieParser = require("cookie-parser");
+const session = require("express-session");
+// const passport = require("passport");
+
 const mongoose = require("mongoose");
 
 const {
@@ -28,13 +31,24 @@ app.use(cors());
 app.use(express.json());
 const socketsStatus = {};
 
+app.use(cookieParser());
+
+app.use(
+	session({
+		secret: process.env.SESSION_SECRET,
+		resave: false,
+		saveUninitialized: false,
+	})
+);
+
 const customHandlebars = handlebars.create({ layoutsDir: "./views" });
 
 // --------------------------GOAuth------------------------
 
-const { googleAuthentication } = require("./middlewares/G_OAuth.js");
+const { googleAuthentication, passport } = require("./middlewares/G_OAuth.js");
 const exp = require("constants");
-
+app.use(passport.initialize());
+app.use(passport.session());
 app.get(
 	"/auth/google",
 	passport.authenticate("google", { scope: ["profile", "email"] })
@@ -55,7 +69,7 @@ app.engine("handlebars", customHandlebars.engine);
 app.set("view engine", "handlebars");
 
 app.use("/files", express.static("public"));
-app.use("/user", userRouter);
+app.use("/users", userRouter);
 app.use("/payment", paymentRouter);
 
 io.on("connection", (socket) => {

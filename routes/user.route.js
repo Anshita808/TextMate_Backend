@@ -1,26 +1,16 @@
 const express = require("express");
+// const cookieParser = require("cookie-parser");
+
 const { UserModel } = require("../models/user.model");
-const app = express();
+// const app = express();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { Blacklist } = require("../models/blacklist.model");
-app.use(express.json());
+// app.use(express.json());
 require("dotenv").config();
-const session = require("express-session");
 const passport = require("passport");
 const GitHubStrategy = require("passport-github2").Strategy;
 const userRouter = express.Router();
-
-app.use(
-	session({
-		secret: process.env.SESSION_SECRET,
-		resave: false,
-		saveUninitialized: false,
-	})
-);
-
-app.use(passport.initialize());
-app.use(passport.session());
 
 // GITHUB_CLIENT_ID = 45f1ae73c281b43ca8a8
 // GITHUB_CLIENT_SECRET = 4fbaf6072fc8ac2166f4f4c095d700fc28ec3dcb
@@ -130,9 +120,9 @@ userRouter.post("/login", async (req, res) => {
 
 		const Accesstoken = jwt.sign(
 			{ userID: isUserExist._id },
-			process.env.accesstoken
+			process.env.SESSION_SECRET
 		);
-
+		res.cookie("token", Accesstoken);
 		res.send({ msg: "login successfull", user: isUserExist, Accesstoken });
 	} catch (error) {
 		res.send({ msg: error.msg });
@@ -142,7 +132,7 @@ userRouter.post("/login", async (req, res) => {
 userRouter.post("/logout", async (req, res) => {
 	// we wil get the accesstoken and refreshtoken in req.headers with the respective name;
 	try {
-		const accesstoken = req.headers.authorization;
+		const accesstoken = req.cookies.token;
 
 		const blackAccess = new Blacklist({ token: accesstoken });
 		await blackAccess.save();
